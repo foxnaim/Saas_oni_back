@@ -1,0 +1,76 @@
+# Docker Compose для продакшена с персистентным хранилищем MongoDB
+# Использование: docker-compose -f docker-compose.prod.yml up -d
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: anonymous-chat-mongodb-prod
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: anonymous-chat
+      # Опционально: настройка аутентификации
+      # MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      # MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      # ВАЖНО: Используем bind mount на постоянный диск хоста
+      # Убедитесь, что /srv/mongo-data существует и имеет правильные права
+      - /srv/mongo-data:/data/db
+      # Альтернатива для локальной разработки на Mac/Windows:
+      # - ./data/mongodb:/data/db
+    networks:
+      - anonymous-chat-network
+    # Опционально: настройка безопасности
+    # command: --auth
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: anonymous-chat-backend-prod
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-3001}
+      # Используем локальный MongoDB
+      MONGODB_URI: mongodb://mongodb:27017/anonymous-chat
+      # Если включена аутентификация MongoDB:
+      # MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/anonymous-chat?authSource=admin
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - anonymous-chat-network
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  anonymous-chat-network:
+    driver: bridge
+
+
+
+
+
+
+
+
+
+

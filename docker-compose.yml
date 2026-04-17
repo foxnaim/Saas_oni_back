@@ -1,0 +1,50 @@
+services:
+  # Локальный MongoDB (опционально, можно использовать MongoDB Atlas)
+  mongodb:
+    image: mongo:7
+    container_name: anonymous-chat-mongodb
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: anonymous-chat
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - anonymous-chat-network
+    profiles:
+      - local-db  # Запускается только с профилем local-db
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: anonymous-chat-backend
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    env_file:
+      - .env  # Загружает переменные из .env файла
+    environment:
+      # Переопределяем только если нужно использовать локальный MongoDB
+      # MONGODB_URI: mongodb://mongodb:27017/anonymous-chat
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3001}
+    depends_on:
+      mongodb:
+        condition: service_started
+        required: false  # Не обязателен, если используется MongoDB Atlas
+    networks:
+      - anonymous-chat-network
+    volumes:
+      - ./logs:/app/logs
+
+volumes:
+  mongodb_data:
+
+networks:
+  anonymous-chat-network:
+    driver: bridge
+
+
+
