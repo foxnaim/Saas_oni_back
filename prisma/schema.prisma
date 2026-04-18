@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  user
+  company
+  admin
+  super_admin
+}
+
+enum CompanyStatus {
+  Active
+  Trial
+  Blocked
+}
+
+enum MessageType {
+  complaint
+  praise
+  suggestion
+}
+
+enum MessageStatus {
+  New
+  InProgress
+  Resolved
+  Rejected
+  Spam
+}
+
+model User {
+  id                   String         @id @default(uuid())
+  email                String         @unique
+  password             String
+  role                 UserRole       @default(user)
+  name                 String?
+  companyId            String?
+  company              Company?       @relation(fields: [companyId], references: [id])
+  lastLogin            DateTime?
+  isVerified           Boolean        @default(false)
+  verificationToken    String?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  telegramId           BigInt?        @unique
+  telegramUsername     String?
+  adminSettings        AdminSettings?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+}
+
+model Company {
+  id                String            @id @default(uuid())
+  name              String
+  code              String            @unique @db.VarChar(8)
+  adminEmail        String            @unique
+  password          String            @default("")
+  status            CompanyStatus     @default(Trial)
+  planId            String?
+  plan              SubscriptionPlan? @relation(fields: [planId], references: [id])
+  trialEndDate      DateTime?
+  planEndDate       DateTime?
+  trialUsed         Boolean           @default(false)
+  employees         Int               @default(0)
+  messages          Int               @default(0)
+  messagesThisMonth Int               @default(0)
+  messagesLimit     Int               @default(10)
+  storageUsed       Float             @default(0)
+  storageLimit      Float             @default(1)
+  logoUrl           String?
+  fullscreenMode    Boolean           @default(false)
+  supportWhatsApp   String?
+  telegramChatId    String?
+  users             User[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([status])
+  @@index([code])
+}
+
+model Message {
+  id                String        @id @default(uuid())
+  messageId         String        @unique
+  companyCode       String
+  type              MessageType
+  content           String        @db.Text
+  status            MessageStatus @default(New)
+  companyResponse   String?       @db.Text
+  adminNotes        String?       @db.Text
+  previousStatus    String?
+  telegramMessageId BigInt?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([companyCode, status])
+  @@index([companyCode, type])
+  @@index([companyCode, createdAt])
+}
+
+model SubscriptionPlan {
+  id             String    @id @default(uuid())
+  name           Json
+  price          Float
+  messagesLimit  Int
+  storageLimit   Float
+  features       String[]
+  isFree         Boolean   @default(false)
+  freePeriodDays Int?
+  companies      Company[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model FreePlanSettings {
+  id             String   @id @default("default")
+  messagesLimit  Int      @default(10)
+  storageLimit   Float    @default(1)
+  freePeriodDays Int      @default(22)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model AdminSettings {
+  id                    String   @id @default(uuid())
+  adminId               String   @unique
+  admin                 User     @relation(fields: [adminId], references: [id])
+  fullscreenMode        Boolean  @default(false)
+  language              String   @default("ru")
+  theme                 String   @default("light")
+  itemsPerPage          Int      @default(25)
+  notificationsEnabled  Boolean  @default(true)
+  emailNotifications    Boolean  @default(true)
+  supportWhatsAppNumber String?
+  telegramNotifications Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model AdminUser {
+  id         String    @id @default(uuid())
+  email      String    @unique
+  name       String
+  role       String    @default("admin")
+  telegramId BigInt?
+  lastLogin  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}

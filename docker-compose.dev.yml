@@ -1,48 +1,65 @@
-# Docker Compose для разработки
-# Использует локальный MongoDB и hot-reload через volumes
+# Development stack — hot-reload via volume mount, no image build needed
+# Usage: docker compose -f docker-compose.dev.yml up
 
 services:
+
+  # ── MongoDB ────────────────────────────────────────────────────────────────
   mongodb:
     image: mongo:7
-    container_name: anonymous-chat-mongodb-dev
+    container_name: sayless-mongodb-dev
     restart: unless-stopped
     ports:
-      - '27017:27017'
+      - "27017:27017"
     environment:
-      MONGO_INITDB_DATABASE: anonymous-chat
+      MONGO_INITDB_DATABASE: sayless
     volumes:
       - mongodb_data_dev:/data/db
     networks:
-      - anonymous-chat-network
+      - sayless-network-dev
 
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: sayless-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    networks:
+      - sayless-network-dev
+
+  # ── Backend ────────────────────────────────────────────────────────────────
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.dev
-    container_name: anonymous-chat-backend-dev
+      dockerfile: Dockerfile
+    container_name: sayless-backend-dev
     restart: unless-stopped
     ports:
-      - '3001:3001'
+      - "3001:3001"
     env_file:
       - .env
     environment:
       NODE_ENV: development
       PORT: 3001
-      MONGODB_URI: mongodb://mongodb:27017/anonymous-chat
+      MONGODB_URI: mongodb://mongodb:27017/sayless
+      REDIS_URL: redis://redis:6379
     depends_on:
       - mongodb
-    networks:
-      - anonymous-chat-network
+      - redis
     volumes:
-      - ./src:/app/src
+      - ./src:/app/src        # hot-reload: watch source changes
       - ./logs:/app/logs
-      - /app/node_modules
-    command: yarn dev
+      - /app/node_modules     # keep container node_modules intact
+    command: yarn start:dev
+    networks:
+      - sayless-network-dev
 
 volumes:
   mongodb_data_dev:
+  redis_data_dev:
 
 networks:
-  anonymous-chat-network:
+  sayless-network-dev:
     driver: bridge
-

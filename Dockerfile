@@ -1,50 +1,45 @@
-# Multi-stage build для продакшена
+# ─── Stage 1: Builder ────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Копируем файлы зависимостей
-COPY package.json yarn.lock* package-lock.json* ./
-
-# Устанавливаем все зависимости (включая dev для сборки)
+# Install ALL dependencies (including devDependencies for nest build)
+COPY package.json yarn.lock ./
+COPY prisma ./prisma
 RUN yarn install --frozen-lockfile
 
-# Копируем исходный код
+# Copy source and build
 COPY . .
+RUN npx nest build
 
-# Собираем проект
-RUN yarn build
-
-# Production образ
+# ─── Stage 2: Production ─────────────────────────────────────────────────────
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Копируем файлы зависимостей
-COPY package.json yarn.lock* package-lock.json* ./
+# Install only production dependencies (skip postinstall prisma generate)
+COPY package.json yarn.lock ./
+COPY prisma ./prisma
+RUN yarn install --frozen-lockfile --production --ignore-scripts && \
+    yarn cache clean
 
-# Устанавливаем только production зависимости
-RUN yarn install --frozen-lockfile --production
+# Copy Prisma generated client from builder
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
-# Копируем собранный код из builder
+# Copy compiled output from builder
 COPY --from=builder /app/dist ./dist
 
-# Создаем директорию для логов
+# Create log directory
 RUN mkdir -p logs
 
-# Создаем непривилегированного пользователя
+# Non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Меняем владельца файлов
-RUN chown -R nodejs:nodejs /app
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
 
 USER nodejs
 
 EXPOSE 3001
 
-# Запускаем приложение
-CMD ["node", "dist/server.js"]
-
-
-
+CMD ["node", "dist/main.js"]

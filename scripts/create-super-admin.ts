@@ -5,10 +5,14 @@
 
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import { AdminUser } from '../src/models/AdminUser';
-import { User } from '../src/models/User';
-import { Company } from '../src/models/Company';
-import { hashPassword } from '../src/utils/password';
+import * as bcrypt from 'bcrypt';
+import { AdminUser, AdminUserSchema } from '../src/users/schemas/admin-user.schema';
+import { User, UserSchema } from '../src/users/schemas/user.schema';
+import { Company, CompanySchema } from '../src/companies/schemas/company.schema';
+
+const AdminUserModel = mongoose.model(AdminUser.name, AdminUserSchema);
+const UserModel = mongoose.model(User.name, UserSchema);
+const CompanyModel = mongoose.model(Company.name, CompanySchema);
 
 dotenv.config({ path: '.env' });
 
@@ -38,7 +42,7 @@ const createSuperAdmin = async (): Promise<void> => {
     const normalizedEmail = email.toLowerCase().trim();
 
     // Проверяем, не существует ли уже админ с таким email
-    const existingAdmin = await AdminUser.findOne({ email: normalizedEmail });
+    const existingAdmin = await AdminUserModel.findOne({ email: normalizedEmail });
     if (existingAdmin) {
       console.error(`Error: Admin with email ${email} already exists`);
       await mongoose.disconnect();
@@ -46,7 +50,7 @@ const createSuperAdmin = async (): Promise<void> => {
     }
 
     // Проверяем, не существует ли компания с таким adminEmail
-    const existingCompany = await Company.findOne({ adminEmail: normalizedEmail });
+    const existingCompany = await CompanyModel.findOne({ adminEmail: normalizedEmail });
     if (existingCompany) {
       console.error(`Error: Company with admin email ${email} already exists`);
       console.error(`Company name: ${existingCompany.name}, code: ${existingCompany.code}`);
@@ -54,7 +58,7 @@ const createSuperAdmin = async (): Promise<void> => {
       process.exit(1);
     }
 
-    const existingUser = await User.findOne({ email: normalizedEmail });
+    const existingUser = await UserModel.findOne({ email: normalizedEmail });
     if (existingUser) {
       console.error(`Error: User with email ${email} already exists`);
       await mongoose.disconnect();
@@ -64,7 +68,7 @@ const createSuperAdmin = async (): Promise<void> => {
     // Создаем админа
     console.log('Creating super admin...');
     const createdAt = new Date().toISOString().split('T')[0];
-    const admin = await AdminUser.create({
+    const admin = await AdminUserModel.create({
       email: normalizedEmail,
       name,
       role: 'super_admin',
@@ -74,8 +78,8 @@ const createSuperAdmin = async (): Promise<void> => {
 
     // Создаем пользователя для админа
     console.log('Creating user for admin...');
-    const hashedPassword = await hashPassword(password);
-    const user = await User.create({
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await UserModel.create({
       email: normalizedEmail,
       password: hashedPassword,
       role: 'super_admin',

@@ -1,12 +1,12 @@
 <div align="center">
 
-# 🔧 Anonymous-chat-backend
+# Sayless Backend
 
-**Backend API for Anonymous Chat — Node.js, Express, WebSocket**
+**NestJS backend for the Sayless anonymous feedback platform**
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
-![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socket.io&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
@@ -16,25 +16,27 @@
 
 ## About
 
-Backend service for the Anonymous Chat platform. Handles WebSocket connections, message routing, and room management. Fully containerized with Docker.
+Backend service for the Sayless anonymous feedback platform. Built with NestJS and TypeScript, it handles authentication, real-time WebSocket connections, feedback management, and Telegram bot integration. Fully containerized with Docker.
 
 ## Features
 
-- 🔌 **WebSocket Server** — Real-time bidirectional communication
-- 🏠 **Room Management** — Create and join chat rooms
-- 📨 **Message Routing** — Efficient message delivery
-- 🐳 **Docker** — Multi-stage Docker builds
-- 🧪 **Tests** — Jest test coverage
-- 🚀 **CI-ready** — Railway deployment config included
+- **WebSocket Server** — Real-time bidirectional communication via Socket.IO
+- **Authentication** — JWT-based auth with OAuth support
+- **MongoDB** — Persistent storage with Mongoose
+- **Telegram Bot** — Feedback notifications via Telegram
+- **Docker** — Multi-stage Docker builds
+- **Tests** — Jest test coverage
+- **CI-ready** — Railway deployment config included
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Runtime | Node.js |
-| Framework | Express + NestJS |
+| Framework | NestJS |
 | Language | TypeScript |
-| Real-time | Socket.io |
+| Database | MongoDB |
+| Real-time | Socket.IO |
+| Bot | Telegram Bot API |
 | Testing | Jest |
 | Deploy | Docker, Railway |
 
@@ -63,4 +65,3 @@ docker-compose -f docker-compose.dev.yml up
 ## License
 
 MIT © [foxnaim](https://github.com/foxnaim)
-# Saas_oni_back
